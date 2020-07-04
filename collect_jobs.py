@@ -9,11 +9,15 @@ from normal import align_print
 import internet
 import time
 
+path_cur = normal.get_current_path()
+today = normal.get_time(1, '-')
+file_save_path = 'files'
 
-def get_element_info(xpath):
+
+def get_element_info(website, xpath):
     delay_ms(160)
     try:
-        ele = WebDriverWait(page, 10).until(
+        ele = WebDriverWait(website, 10).until(
             EC.presence_of_element_located((By.XPATH, xpath)))
     except:
         print('加载页面出错')
@@ -27,33 +31,40 @@ class company:
         self.talk_time = []
         self.adress = []
 
+    def add_suffix(self, suffix):
+        self.name.append(suffix)
+        self.date.append(suffix)
+        self.talk_time.append(suffix)
+        self.adress.append(suffix)
+
 
 class university:
     def __init__(self):
         self.url = ''
-        self.file_path = ''
         self.name = ''
 
+    def get_file_path(self):
+        file_path = path_cur + '/' + file_save_path + '/' + today + '-' + self.name + '.xls'
+        return file_path
+
     def finish_job(self):
-        print(self.name, ' university数据获取完成~')
+        print(self.name, 'university数据获取完成~')
 
 
 if __name__ == '__main__':
     start = time.time()
-    path_cur = normal.get_current_path()
-    today = normal.get_time(1, '-')
-    file_save_path = 'files'
 
     southeast = university()
     southeast.name = 'southeast'
     southeast.url = 'http://seu.91job.org.cn/'
-    southeast.file_path = path_cur + file_save_path + today + southeast.name + '.xls'
 
     nanjing_url = 'http://job.nju.edu.cn/#!/more/special_recruit'
+    nuaa_url = 'http://job.nuaa.edu.cn/jobfair'
+    njust_url = 'http://njust.91job.org.cn/jobfair'
 
     page = internet.google_open_web(southeast.url)
     recruitment_talk_xpath = '/html/body/div[1]/div[3]/div[2]/div/div[3]/div[2]/ul[1]'
-    chuiniu = get_element_info(recruitment_talk_xpath)
+    chuiniu = get_element_info(page, recruitment_talk_xpath)
     second_time = time.time()
     print('打开网页耗时：', second_time - start, 's', sep='')
     # print(chuiniu.text)
@@ -78,12 +89,13 @@ if __name__ == '__main__':
             all_company.talk_time.append(data)
         elif position == 5:
             all_company.adress.append(data)
+    all_company.add_suffix(southeast.name)
     tmp_excel = pd.concat([pd.DataFrame(all_company.name), pd.DataFrame(all_company.date),
-                           pd.DataFrame(all_company.talk_time), pd.DataFrame(all_company.adress)],
-                          axis=1, ignore_index=True)
+                           pd.DataFrame(all_company.talk_time), pd.DataFrame(all_company.adress)
+                           ], axis=1, ignore_index=True)
     tmp_excel.columns = ['公司', '举办日期', '时间', '地点']
     normal.check_dir('files')
-    tmp_excel.to_excel(southeast.file_path, index=False)
+    tmp_excel.to_excel(southeast.get_file_path(), index=False)
     southeast.finish_job()
     # 筛选日期
     # date = re.findall(r'\d{2}[\u4e00-\u9fa5][\s\S]\d{2}[\u4e00-\u9fa5]', chuiniu.text)
