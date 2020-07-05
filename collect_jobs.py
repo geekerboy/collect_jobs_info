@@ -14,16 +14,6 @@ today = normal.get_time(1, '-')
 file_save_path = 'files'
 
 
-def get_element_info(website, xpath):
-    delay_ms(160)
-    try:
-        ele = WebDriverWait(website, 10).until(
-            EC.presence_of_element_located((By.XPATH, xpath)))
-    except:
-        print('加载页面出错')
-    return ele
-
-
 class company:
     def __init__(self):
         self.name = []
@@ -39,44 +29,67 @@ class company:
 
 
 class university:
+    web_flag = 0
+
     def __init__(self):
         self.url = ''
         self.name = ''
+        self.xpath = ''
+        self.index = 0
 
     def get_file_path(self):
         file_path = path_cur + '/' + file_save_path + '/' + today + '-' + self.name + '.xls'
         return file_path
+
+    def get_origin_text(self, window=False, web=None):
+        university.web_flag += 1
+        self.index = university.web_flag
+        web_msg=self.name+'网页访问成功,正在获取内容'
+        if university.web_flag < 2:
+            webpage = internet.google_open_web(self.url, window)
+            delay_ms(20)
+            align_print(web_msg)
+            ele = WebDriverWait(webpage, 10).until(EC.presence_of_element_located((By.XPATH, self.xpath)))
+        else:
+            url = 'window.open("' + self.url + '");'
+            web.execute_script(url)
+            # 当前句柄还在上一个
+            handles = web.window_handles
+            web.switch_to_window(handles[self.index - 1])
+            delay_ms(20)
+            align_print(web_msg)
+            ele = WebDriverWait(web, 10).until(EC.presence_of_element_located((By.XPATH, self.xpath)))
+        # try:
+        #     ele = WebDriverWait(webpage, 10).until(
+        #         EC.presence_of_element_located((By.XPATH, self.xpath)))
+        # except:
+        #     print('加载页面出错')
+        # 两空格之间内容挑出来
+        filiter_info = re.findall(r'(.*)[\s\S]', ele.text)
+        align_print('内容获取完毕,正在进行数据处理')
+        if university.web_flag < 2:
+            return webpage, filiter_info
+        else:
+            return filiter_info
 
     def finish_job(self):
         print(self.name, 'university数据获取完成~')
 
 
 if __name__ == '__main__':
-    start = time.time()
-
+    align_print('程序已启动')
     southeast = university()
     southeast.name = 'southeast'
     southeast.url = 'http://seu.91job.org.cn/'
+    southeast.xpath = '/html/body/div[1]/div[3]/div[2]/div/div[3]/div[2]/ul[1]'
 
     nanjing_url = 'http://job.nju.edu.cn/#!/more/special_recruit'
     nuaa_url = 'http://job.nuaa.edu.cn/jobfair'
     njust_url = 'http://njust.91job.org.cn/jobfair'
 
-    page = internet.google_open_web(southeast.url)
-    recruitment_talk_xpath = '/html/body/div[1]/div[3]/div[2]/div/div[3]/div[2]/ul[1]'
-    chuiniu = get_element_info(page, recruitment_talk_xpath)
-    second_time = time.time()
-    print('打开网页耗时：', second_time - start, 's', sep='')
-    # print(chuiniu.text)
+    webpage, all_data = southeast.get_origin_text()
+    # print(all_data)
 
-    align_print('开始筛选数据')
-    third_time = time.time()
-    all_data = re.findall(r'(.*)[\s\S]', chuiniu.text)
-    print(all_data)
-    fouth_time = time.time()
-    print('筛选数据耗时：', fouth_time - third_time, 's', sep='')
-
-    align_print('筛选完成,正在处理')
     all_company = company()
     for index, data in enumerate(all_data):
         position = index % 7
@@ -106,7 +119,7 @@ if __name__ == '__main__':
     # 筛选时间
     # talk_time = re.findall(r'\d{2}:\d{2}-\d{2}:\d{2}', chuiniu.text)
     # print(talk_time)
-    page.quit()
+    webpage.quit()
 # ^ 匹配字符串的开始。
 # $ 匹配字符串的结尾。
 # \b 匹配一个单词的边界。
